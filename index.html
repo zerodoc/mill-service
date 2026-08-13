@@ -18,12 +18,12 @@
       <div id="status" class="text-xs text-amber-200/60 font-mono">Loading draw records...</div>
     </header>
 
-    <!-- 3-Column Compact Grid Layout -->
+    <!-- 3-Column Uniform Grid Layout -->
     <main class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
       
       <!-- COLUMN 1: Past Winning Numbers (Lg: 4 cols) -->
       <section class="lg:col-span-4 bg-slate-800/50 rounded-xl p-4 border border-slate-700/50 shadow-lg space-y-3">
-        <div class="flex justify-between items-center">
+        <div class="flex justify-between items-center border-b border-slate-700/50 pb-2">
           <h2 class="text-sm font-bold text-slate-200 flex items-center gap-1.5">
             <span>📅</span> Winning Numbers
           </h2>
@@ -37,35 +37,32 @@
       </section>
 
       <!-- COLUMN 2: 🔥 Hot Picks & ❄️ Cold Picks (Lg: 5 cols) -->
-      <section class="lg:col-span-5 space-y-4">
+      <section class="lg:col-span-5 grid grid-cols-2 gap-3">
         
-        <!-- Top Pick Section Header -->
-        <div class="flex justify-between items-center bg-slate-800/50 p-2.5 rounded-lg border border-slate-700/50">
-          <span class="font-bold text-slate-200 text-sm">Number Frequency Analysis</span>
-          <button id="toggle-picks-btn" onclick="togglePicks()" class="text-amber-400 hover:underline font-semibold text-[11px]">
-            Expand to Top 10
-          </button>
+        <!-- 🔥 Hot Picks Panel -->
+        <div class="bg-slate-800/50 rounded-xl p-4 border border-slate-700/50 shadow-lg space-y-3">
+          <div class="flex justify-between items-center border-b border-slate-700/50 pb-2">
+            <h2 class="text-sm font-bold text-amber-400 flex items-center gap-1">
+              <span>🔥</span> Hot Picks
+            </h2>
+          </div>
+          <div id="hot-picks" class="space-y-2">
+            <!-- Dynamic Content -->
+          </div>
         </div>
 
-        <div class="grid grid-cols-2 gap-3">
-          <!-- 🔥 Hot Picks Panel -->
-          <div class="bg-slate-800/50 rounded-xl p-3 border border-slate-700/50 shadow-lg space-y-2">
-            <h3 class="font-bold text-amber-400 flex items-center gap-1 border-b border-slate-700/50 pb-1.5 text-xs">
-              <span>🔥</span> Hot Picks
-            </h3>
-            <div id="hot-picks" class="space-y-1.5">
-              <!-- Dynamic Content -->
-            </div>
-          </div>
-
-          <!-- ❄️ Cold Picks Panel -->
-          <div class="bg-slate-800/50 rounded-xl p-3 border border-slate-700/50 shadow-lg space-y-2">
-            <h3 class="font-bold text-cyan-400 flex items-center gap-1 border-b border-slate-700/50 pb-1.5 text-xs">
+        <!-- ❄️ Cold Picks Panel -->
+        <div class="bg-slate-800/50 rounded-xl p-4 border border-slate-700/50 shadow-lg space-y-3">
+          <div class="flex justify-between items-center border-b border-slate-700/50 pb-2">
+            <h2 class="text-sm font-bold text-cyan-400 flex items-center gap-1">
               <span>❄️</span> Cold Picks
-            </h3>
-            <div id="cold-picks" class="space-y-1.5">
-              <!-- Dynamic Content -->
-            </div>
+            </h2>
+            <button id="toggle-picks-btn" onclick="togglePicks()" class="text-amber-400 hover:underline font-semibold text-[11px]">
+              Expand to 10
+            </button>
+          </div>
+          <div id="cold-picks" class="space-y-2">
+            <!-- Dynamic Content -->
           </div>
         </div>
 
@@ -73,10 +70,12 @@
 
       <!-- COLUMN 3: Millionaire Ball Frequencies (Lg: 3 cols) -->
       <section class="lg:col-span-3 bg-slate-800/50 rounded-xl p-4 border border-slate-700/50 shadow-lg space-y-3">
-        <h2 class="text-sm font-bold text-slate-200 flex items-center gap-1.5">
-          <span>🟡</span> Mill Ball Frequencies
-        </h2>
-        <div id="mill-balls" class="space-y-2.5">
+        <div class="flex justify-between items-center border-b border-slate-700/50 pb-2">
+          <h2 class="text-sm font-bold text-slate-200 flex items-center gap-1.5">
+            <span>🟡</span> Mill Ball Frequencies
+          </h2>
+        </div>
+        <div id="mill-balls" class="space-y-2">
           <!-- Dynamic Content -->
         </div>
       </section>
@@ -196,7 +195,8 @@
       hotContainer.innerHTML = "";
       coldContainer.innerHTML = "";
 
-      const countToDisplay = showTop10Picks ? 10 : 5;
+      // Default to 7 so Hot & Cold match the 7 rows of Winning Numbers & Mill Balls
+      const countToDisplay = showTop10Picks ? 10 : 7;
 
       // Transform & Sort Data
       const allNumbers = Object.keys(globalWhiteFreq).map(num => ({
@@ -222,7 +222,7 @@
         card.innerHTML = `
           <div class="flex items-center gap-2">
             <span class="text-[10px] font-bold text-slate-500">#${idx + 1}</span>
-            <span class="w-7 h-7 rounded-full bg-amber-400 text-slate-900 font-black flex items-center justify-center text-xs shadow">
+            <span class="w-6 h-6 rounded-full bg-amber-400 text-slate-900 font-black flex items-center justify-center text-xs shadow">
               ${String(item.num).padStart(2, '0')}
             </span>
           </div>
@@ -241,7 +241,7 @@
         card.innerHTML = `
           <div class="flex items-center gap-2">
             <span class="text-[10px] font-bold text-slate-500">#${idx + 1}</span>
-            <span class="w-7 h-7 rounded-full bg-cyan-500 text-slate-900 font-black flex items-center justify-center text-xs shadow">
+            <span class="w-6 h-6 rounded-full bg-cyan-500 text-slate-900 font-black flex items-center justify-center text-xs shadow">
               ${String(item.num).padStart(2, '0')}
             </span>
           </div>
@@ -290,7 +290,7 @@
 
     function togglePicks() {
       showTop10Picks = !showTop10Picks;
-      document.getElementById("toggle-picks-btn").innerText = showTop10Picks ? "Collapse to 5" : "Expand to Top 10";
+      document.getElementById("toggle-picks-btn").innerText = showTop10Picks ? "Collapse to 7" : "Expand to 10";
       renderPicks();
     }
 
