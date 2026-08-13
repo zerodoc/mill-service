@@ -9,11 +9,25 @@
 <body class="bg-slate-900 text-slate-100 min-h-screen p-4 font-sans text-xs">
   <div class="max-w-7xl mx-auto space-y-4">
     
-    <!-- Compact Header -->
+    <!-- Compact Header with Official Link -->
     <header class="flex justify-between items-center border-b border-slate-800 pb-3">
       <div>
-        <h1 class="text-xl font-extrabold text-amber-400">Millionaire for Life Analytics</h1>
-        <p class="text-slate-400 text-xs">SODA API Live Analysis (data.ny.gov)</p>
+        <div class="flex items-center gap-2">
+          <h1 class="text-xl font-extrabold text-amber-400">Millionaire for Life Analytics</h1>
+          <a 
+            href="https://nylottery.ny.gov/draw-game/?game=million4life" 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            class="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-400 hover:text-amber-400 bg-slate-800 hover:bg-slate-700 border border-slate-700 px-2 py-0.5 rounded transition-colors"
+            title="Open Official NY Lottery Page"
+          >
+            <span>Official Game Page</span>
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+            </svg>
+          </a>
+        </div>
+        <p class="text-slate-400 text-xs mt-0.5">SODA API Live Analysis (data.ny.gov)</p>
       </div>
       <div id="status" class="text-xs text-amber-200/60 font-mono">Loading draw records...</div>
     </header>
@@ -195,27 +209,22 @@
       hotContainer.innerHTML = "";
       coldContainer.innerHTML = "";
 
-      // Default to 7 so Hot & Cold match the 7 rows of Winning Numbers & Mill Balls
       const countToDisplay = showTop10Picks ? 10 : 7;
 
-      // Transform & Sort Data
       const allNumbers = Object.keys(globalWhiteFreq).map(num => ({
         num: parseInt(num, 10),
         count: globalWhiteFreq[num],
         pct: ((globalWhiteFreq[num] / globalTotalDraws) * 100).toFixed(1)
       }));
 
-      // 🔥 Hot Picks (Descending)
       const hotList = [...allNumbers]
         .sort((a, b) => b.count - a.count || a.num - b.num)
         .slice(0, countToDisplay);
 
-      // ❄️ Cold Picks (Ascending)
       const coldList = [...allNumbers]
         .sort((a, b) => a.count - b.count || a.num - b.num)
         .slice(0, countToDisplay);
 
-      // Render 🔥 Hot Picks
       hotList.forEach((item, idx) => {
         const card = document.createElement("div");
         card.className = "bg-slate-900 border border-slate-700/80 p-2 rounded-md flex items-center justify-between";
@@ -234,7 +243,6 @@
         hotContainer.appendChild(card);
       });
 
-      // Render ❄️ Cold Picks
       coldList.forEach((item, idx) => {
         const card = document.createElement("div");
         card.className = "bg-slate-900 border border-slate-700/80 p-2 rounded-md flex items-center justify-between";
