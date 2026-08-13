@@ -3,18 +3,19 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Millionaire for Life - Stats Dashboard</title>
+  <title>NY Lottery Analytics Dashboard (Current Year)</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen p-4 font-sans text-xs">
   <div class="max-w-7xl mx-auto space-y-4">
     
-    <!-- Compact Header with Official Link -->
-    <header class="flex justify-between items-center border-b border-slate-800 pb-3">
+    <!-- Compact Header with Game Tabs -->
+    <header class="flex flex-wrap justify-between items-center border-b border-slate-800 pb-3 gap-3">
       <div>
         <div class="flex items-center gap-2">
-          <h1 class="text-xl font-extrabold text-amber-400">Millionaire for Life Analytics</h1>
+          <h1 id="game-title" class="text-xl font-extrabold text-amber-400">Millionaire for Life</h1>
           <a 
+            id="official-link"
             href="https://nylottery.ny.gov/draw-game/?game=million4life" 
             target="_blank" 
             rel="noopener noreferrer" 
@@ -27,9 +28,35 @@
             </svg>
           </a>
         </div>
-        <p class="text-slate-400 text-xs mt-0.5">SODA API Live Analysis (data.ny.gov)</p>
+        <p class="text-slate-400 text-xs mt-0.5">SODA API Analysis (Current Year 2026 Only)</p>
       </div>
-      <div id="status" class="text-xs text-amber-200/60 font-mono">Loading draw records...</div>
+
+      <!-- Game Selection Tabs -->
+      <div class="flex bg-slate-800 p-1 rounded-lg border border-slate-700/80 gap-1">
+        <button 
+          id="tab-m4l" 
+          onclick="switchGame('m4l')" 
+          class="px-3 py-1.5 rounded-md font-bold transition-all bg-amber-400 text-slate-900 shadow"
+        >
+          Millionaire for Life
+        </button>
+        <button 
+          id="tab-pb" 
+          onclick="switchGame('pb')" 
+          class="px-3 py-1.5 rounded-md font-bold transition-all text-slate-400 hover:text-slate-100"
+        >
+          Powerball
+        </button>
+        <button 
+          id="tab-mm" 
+          onclick="switchGame('mm')" 
+          class="px-3 py-1.5 rounded-md font-bold transition-all text-slate-400 hover:text-slate-100"
+        >
+          Mega Millions
+        </button>
+      </div>
+
+      <div id="status" class="text-xs text-amber-200/60 font-mono w-full sm:w-auto text-right">Loading records...</div>
     </header>
 
     <!-- 3-Column Uniform Grid Layout -->
@@ -42,7 +69,7 @@
             <span>📅</span> Winning Numbers
           </h2>
           <button id="toggle-draws-btn" onclick="toggleDraws()" class="text-amber-400 hover:underline font-semibold text-[11px]">
-            Show All
+            Show All (2026)
           </button>
         </div>
         <div id="recent-draws" class="space-y-2">
@@ -82,14 +109,14 @@
 
       </section>
 
-      <!-- COLUMN 3: Millionaire Ball Frequencies (Lg: 3 cols) -->
+      <!-- COLUMN 3: Bonus Ball Frequencies (Lg: 3 cols) -->
       <section class="lg:col-span-3 bg-slate-800/50 rounded-xl p-4 border border-slate-700/50 shadow-lg space-y-3">
         <div class="flex justify-between items-center border-b border-slate-700/50 pb-2">
-          <h2 class="text-sm font-bold text-slate-200 flex items-center gap-1.5">
+          <h2 id="bonus-title" class="text-sm font-bold text-slate-200 flex items-center gap-1.5">
             <span>🟡</span> Mill Ball Frequencies
           </h2>
         </div>
-        <div id="mill-balls" class="space-y-2">
+        <div id="bonus-balls" class="space-y-2">
           <!-- Dynamic Content -->
         </div>
       </section>
@@ -100,8 +127,39 @@
 
   <script>
     const APP_TOKEN = "OPDPTaiPiF7aR1xR1PHvuA4O9";
-    const API_URL = `https://data.ny.gov/resource/a4w9-a3tp.json?$limit=5000&$order=draw_date%20DESC`;
+    const CURRENT_YEAR = new Date().getFullYear().toString(); // e.g. "2026"
 
+    const GAME_CONFIGS = {
+      m4l: {
+        title: "Millionaire for Life",
+        bonusTitle: "🟡 Mill Ball Frequencies",
+        link: "https://nylottery.ny.gov/draw-game/?game=million4life",
+        url: `https://data.ny.gov/resource/a4w9-a3tp.json?$limit=5000&$where=draw_date >= '${CURRENT_YEAR}-01-01T00:00:00.000'&$order=draw_date DESC`,
+        maxWhite: 58,
+        bonusKey: "mill_ball",
+        bonusColor: "bg-amber-400"
+      },
+      pb: {
+        title: "Powerball",
+        bonusTitle: "🔴 Powerball Frequencies",
+        link: "https://nylottery.ny.gov/draw-game/?game=powerball",
+        url: `https://data.ny.gov/resource/d6yy-54nr.json?$limit=5000&$where=draw_date >= '${CURRENT_YEAR}-01-01T00:00:00.000'&$order=draw_date DESC`,
+        maxWhite: 69,
+        bonusKey: "red_ball",
+        bonusColor: "bg-red-500 text-white"
+      },
+      mm: {
+        title: "Mega Millions",
+        bonusTitle: "🟡 Mega Ball Frequencies",
+        link: "https://nylottery.ny.gov/draw-game/?game=megamillions",
+        url: `https://data.ny.gov/resource/5xaw-6ayf.json?$limit=5000&$where=draw_date >= '${CURRENT_YEAR}-01-01T00:00:00.000'&$order=draw_date DESC`,
+        maxWhite: 70,
+        bonusKey: "mega_ball",
+        bonusColor: "bg-amber-400"
+      }
+    };
+
+    let currentGame = "m4l";
     let globalDraws = [];
     let globalWhiteFreq = {};
     let globalTotalDraws = 0;
@@ -109,10 +167,37 @@
     let showAllDraws = false;
     let showTop10Picks = false;
 
+    async function switchGame(gameKey) {
+      if (currentGame === gameKey) return;
+      currentGame = gameKey;
+
+      // Update Tab Styles
+      ["m4l", "pb", "mm"].forEach(k => {
+        const tab = document.getElementById(`tab-${k}`);
+        if (k === gameKey) {
+          tab.className = "px-3 py-1.5 rounded-md font-bold transition-all bg-amber-400 text-slate-900 shadow";
+        } else {
+          tab.className = "px-3 py-1.5 rounded-md font-bold transition-all text-slate-400 hover:text-slate-100";
+        }
+      });
+
+      // Update Titles & External Links
+      const config = GAME_CONFIGS[gameKey];
+      document.getElementById("game-title").innerText = config.title;
+      document.getElementById("bonus-title").innerText = config.bonusTitle;
+      document.getElementById("official-link").href = config.link;
+
+      await fetchAndAnalyze();
+    }
+
     async function fetchAndAnalyze() {
       const statusEl = document.getElementById("status");
+      statusEl.innerText = "Loading 2026 data...";
+      
+      const config = GAME_CONFIGS[currentGame];
+
       try {
-        const response = await fetch(API_URL, {
+        const response = await fetch(config.url, {
           headers: { "X-App-Token": APP_TOKEN }
         });
 
@@ -122,18 +207,19 @@
         globalTotalDraws = globalDraws.length;
 
         if (globalTotalDraws === 0) {
-          statusEl.innerText = "No draw history found.";
+          statusEl.innerText = "No 2026 draw history found.";
           return;
         }
 
-        statusEl.innerText = `${globalTotalDraws} draws loaded.`;
+        statusEl.innerText = `${globalTotalDraws} draws loaded for 2026.`;
 
-        // Initialize 1 to 58
-        for (let i = 1; i <= 58; i++) {
+        // Reset frequency maps
+        globalWhiteFreq = {};
+        for (let i = 1; i <= config.maxWhite; i++) {
           globalWhiteFreq[i] = 0;
         }
 
-        const millFreq = {};
+        const bonusFreq = {};
 
         globalDraws.forEach(draw => {
           if (draw.winning_numbers) {
@@ -145,19 +231,20 @@
             });
           }
 
-          if (draw.mill_ball) {
-            const mb = parseInt(draw.mill_ball, 10);
-            if (!isNaN(mb)) millFreq[mb] = (millFreq[mb] || 0) + 1;
+          const bVal = draw[config.bonusKey] || draw.mega_ball || draw.red_ball || draw.mill_ball;
+          if (bVal) {
+            const bb = parseInt(bVal, 10);
+            if (!isNaN(bb)) bonusFreq[bb] = (bonusFreq[bb] || 0) + 1;
           }
         });
 
         renderRecentDraws();
         renderPicks();
-        renderMillBalls(millFreq);
+        renderBonusBalls(bonusFreq);
 
       } catch (err) {
         console.error("Fetch error:", err);
-        statusEl.innerText = "Error loading data.";
+        statusEl.innerText = "Error loading 2026 data.";
       }
     }
 
@@ -165,6 +252,7 @@
       const container = document.getElementById("recent-draws");
       container.innerHTML = "";
 
+      const config = GAME_CONFIGS[currentGame];
       const limit = showAllDraws ? globalDraws.length : 7;
       const drawsToRender = globalDraws.slice(0, limit);
 
@@ -177,6 +265,7 @@
         });
 
         const whiteBalls = draw.winning_numbers.trim().split(/\s+/);
+        const bVal = draw[config.bonusKey] || draw.mega_ball || draw.red_ball || draw.mill_ball;
         
         const card = document.createElement("div");
         card.className = "bg-slate-900 border border-slate-700/80 p-2 rounded-lg flex items-center justify-between";
@@ -187,11 +276,13 @@
           </span>
         `).join("");
 
-        ballsHTML += `
-          <span class="w-6 h-6 rounded-full bg-amber-400 text-slate-900 font-black flex items-center justify-center text-xs shadow border border-amber-300">
-            ${draw.mill_ball}
-          </span>
-        `;
+        if (bVal) {
+          ballsHTML += `
+            <span class="w-6 h-6 rounded-full ${config.bonusColor} font-black flex items-center justify-center text-xs shadow border border-slate-600">
+              ${bVal}
+            </span>
+          `;
+        }
 
         card.innerHTML = `
           <div class="text-[11px] font-semibold text-slate-300">${dateStr}</div>
@@ -262,8 +353,8 @@
       });
     }
 
-    function renderMillBalls(freqMap) {
-      const container = document.getElementById("mill-balls");
+    function renderBonusBalls(freqMap) {
+      const container = document.getElementById("bonus-balls");
       container.innerHTML = "";
 
       const sorted = Object.keys(freqMap)
@@ -283,7 +374,7 @@
             <span class="text-slate-400">${item.count} hits (${item.pct}%)</span>
           </div>
           <div class="w-full bg-slate-800 rounded-full h-2 overflow-hidden border border-slate-700">
-            <div class="bg-amber-400 h-2 rounded-full transition-all duration-500" style="width: ${item.pct * 3}%"></div>
+            <div class="bg-amber-400 h-2 rounded-full transition-all duration-500" style="width: ${Math.min(item.pct * 3, 100)}%"></div>
           </div>
         `;
         container.appendChild(row);
@@ -292,7 +383,7 @@
 
     function toggleDraws() {
       showAllDraws = !showAllDraws;
-      document.getElementById("toggle-draws-btn").innerText = showAllDraws ? "Show Past 7" : "Show All";
+      document.getElementById("toggle-draws-btn").innerText = showAllDraws ? "Show Past 7" : "Show All (2026)";
       renderRecentDraws();
     }
 
