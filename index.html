@@ -127,7 +127,7 @@
 
   <script>
     const APP_TOKEN = "OPDPTaiPiF7aR1xR1PHvuA4O9";
-    const CURRENT_YEAR = new Date().getFullYear().toString(); // e.g. "2026"
+    const CURRENT_YEAR = new Date().getFullYear().toString(); // "2026"
 
     const GAME_CONFIGS = {
       m4l: {
@@ -136,8 +136,9 @@
         link: "https://nylottery.ny.gov/draw-game/?game=million4life",
         url: `https://data.ny.gov/resource/a4w9-a3tp.json?$limit=5000&$where=draw_date >= '${CURRENT_YEAR}-01-01T00:00:00.000'&$order=draw_date DESC`,
         maxWhite: 58,
-        bonusKey: "mill_ball",
-        bonusColor: "bg-amber-400"
+        maxBonus: 5,
+        bonusKeys: ["mill_ball"],
+        bonusColor: "bg-amber-400 text-slate-900 border-amber-300"
       },
       pb: {
         title: "Powerball",
@@ -145,8 +146,9 @@
         link: "https://nylottery.ny.gov/draw-game/?game=powerball",
         url: `https://data.ny.gov/resource/d6yy-54nr.json?$limit=5000&$where=draw_date >= '${CURRENT_YEAR}-01-01T00:00:00.000'&$order=draw_date DESC`,
         maxWhite: 69,
-        bonusKey: "red_ball",
-        bonusColor: "bg-red-500 text-white"
+        maxBonus: 26,
+        bonusKeys: ["powerball", "red_ball"],
+        bonusColor: "bg-red-600 text-white border-red-400 font-bold"
       },
       mm: {
         title: "Mega Millions",
@@ -154,8 +156,9 @@
         link: "https://nylottery.ny.gov/draw-game/?game=megamillions",
         url: `https://data.ny.gov/resource/5xaw-6ayf.json?$limit=5000&$where=draw_date >= '${CURRENT_YEAR}-01-01T00:00:00.000'&$order=draw_date DESC`,
         maxWhite: 70,
-        bonusKey: "mega_ball",
-        bonusColor: "bg-amber-400"
+        maxBonus: 25,
+        bonusKeys: ["mega_ball"],
+        bonusColor: "bg-amber-400 text-slate-900 border-amber-300"
       }
     };
 
@@ -171,7 +174,6 @@
       if (currentGame === gameKey) return;
       currentGame = gameKey;
 
-      // Update Tab Styles
       ["m4l", "pb", "mm"].forEach(k => {
         const tab = document.getElementById(`tab-${k}`);
         if (k === gameKey) {
@@ -181,13 +183,41 @@
         }
       });
 
-      // Update Titles & External Links
       const config = GAME_CONFIGS[gameKey];
       document.getElementById("game-title").innerText = config.title;
       document.getElementById("bonus-title").innerText = config.bonusTitle;
       document.getElementById("official-link").href = config.link;
 
       await fetchAndAnalyze();
+    }
+
+    // Helper to parse numbers and bonus ball consistently across varying API formats
+    function parseDrawRecord(draw, config) {
+      let white = [];
+      let bonus = null;
+
+      // Check explicit bonus keys in JSON object first
+      for (const key of config.bonusKeys) {
+        if (draw[key] !== undefined && draw[key] !== null) {
+          bonus = parseInt(draw[key], 10);
+          break;
+        }
+      }
+
+      if (draw.winning_numbers) {
+        const parts = draw.winning_numbers.trim().split(/\s+/).map(n => parseInt(n, 10)).filter(n => !isNaN(n));
+        
+        if (bonus !== null && !isNaN(bonus)) {
+          // Bonus was found in its own field, remaining winning numbers are white balls
+          white = parts;
+        } else if (parts.length > 0) {
+          // Bonus was attached as the last number in winning_numbers string
+          bonus = parts.pop();
+          white = parts;
+        }
+      }
+
+      return { white, bonus };
     }
 
     async function fetchAndAnalyze() {
@@ -213,28 +243,28 @@
 
         statusEl.innerText = `${globalTotalDraws} draws loaded for 2026.`;
 
-        // Reset frequency maps
+        // Initialize frequency maps
         globalWhiteFreq = {};
         for (let i = 1; i <= config.maxWhite; i++) {
           globalWhiteFreq[i] = 0;
         }
 
         const bonusFreq = {};
+        for (let i = 1; i <= config.maxBonus; i++) {
+          bonusFreq[i] = 0;
+        }
 
         globalDraws.forEach(draw => {
-          if (draw.winning_numbers) {
-            draw.winning_numbers.trim().split(/\s+/).forEach(numStr => {
-              const num = parseInt(numStr, 10);
-              if (!isNaN(num) && globalWhiteFreq.hasOwnProperty(num)) {
-                globalWhiteFreq[num]++;
-              }
-            });
-          }
+          const { white, bonus } = parseDrawRecord(draw, config);
 
-          const bVal = draw[config.bonusKey] || draw.mega_ball || draw.red_ball || draw.mill_ball;
-          if (bVal) {
-            const bb = parseInt(bVal, 10);
-            if (!isNaN(bb)) bonusFreq[bb] = (bonusFreq[bb] || 0) + 1;
+          white.forEach(num => {
+            if (globalWhiteFreq.hasOwnProperty(num)) {
+              globalWhiteFreq[num]++;
+            }
+          });
+
+          if (bonus !== null && bonusFreq.hasOwnProperty(bonus)) {
+            bonusFreq[bonus]++;
           }
         });
 
@@ -264,22 +294,21 @@
           timeZone: 'UTC'
         });
 
-        const whiteBalls = draw.winning_numbers.trim().split(/\s+/);
-        const bVal = draw[config.bonusKey] || draw.mega_ball || draw.red_ball || draw.mill_ball;
+        const { white, bonus } = parseDrawRecord(draw, config);
         
         const card = document.createElement("div");
         card.className = "bg-slate-900 border border-slate-700/80 p-2 rounded-lg flex items-center justify-between";
         
-        let ballsHTML = whiteBalls.map(num => `
+        let ballsHTML = white.map(num => `
           <span class="w-6 h-6 rounded-full bg-slate-100 text-slate-900 font-extrabold flex items-center justify-center text-xs shadow">
-            ${num}
+            ${String(num).padStart(2, '0')}
           </span>
         `).join("");
 
-        if (bVal) {
+        if (bonus !== null && !isNaN(bonus)) {
           ballsHTML += `
-            <span class="w-6 h-6 rounded-full ${config.bonusColor} font-black flex items-center justify-center text-xs shadow border border-slate-600">
-              ${bVal}
+            <span class="w-6 h-6 rounded-full ${config.bonusColor} font-black flex items-center justify-center text-xs shadow border">
+              ${String(bonus).padStart(2, '0')}
             </span>
           `;
         }
@@ -305,7 +334,7 @@
       const allNumbers = Object.keys(globalWhiteFreq).map(num => ({
         num: parseInt(num, 10),
         count: globalWhiteFreq[num],
-        pct: ((globalWhiteFreq[num] / globalTotalDraws) * 100).toFixed(1)
+        pct: globalTotalDraws > 0 ? ((globalWhiteFreq[num] / globalTotalDraws) * 100).toFixed(1) : "0.0"
       }));
 
       const hotList = [...allNumbers]
@@ -357,11 +386,13 @@
       const container = document.getElementById("bonus-balls");
       container.innerHTML = "";
 
+      const config = GAME_CONFIGS[currentGame];
+
       const sorted = Object.keys(freqMap)
         .map(num => ({
           num: parseInt(num, 10),
           count: freqMap[num],
-          pct: parseFloat(((freqMap[num] / globalTotalDraws) * 100).toFixed(1))
+          pct: globalTotalDraws > 0 ? parseFloat(((freqMap[num] / globalTotalDraws) * 100).toFixed(1)) : 0
         }))
         .sort((a, b) => b.count - a.count || a.num - b.num);
 
@@ -370,11 +401,11 @@
         row.className = "space-y-1 bg-slate-900 p-2 rounded-lg border border-slate-700/80";
         row.innerHTML = `
           <div class="flex justify-between text-xs">
-            <span class="font-bold text-amber-300">Ball [${item.num}]</span>
+            <span class="font-bold text-amber-300">Ball [${String(item.num).padStart(2, '0')}]</span>
             <span class="text-slate-400">${item.count} hits (${item.pct}%)</span>
           </div>
           <div class="w-full bg-slate-800 rounded-full h-2 overflow-hidden border border-slate-700">
-            <div class="bg-amber-400 h-2 rounded-full transition-all duration-500" style="width: ${Math.min(item.pct * 3, 100)}%"></div>
+            <div class="${config.bonusColor.split(' ')[0]} h-2 rounded-full transition-all duration-500" style="width: ${Math.min(item.pct * 3, 100)}%"></div>
           </div>
         `;
         container.appendChild(row);
