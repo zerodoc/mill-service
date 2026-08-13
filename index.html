@@ -6,51 +6,95 @@
   <title>Millionaire for Life - Stats Dashboard</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-slate-900 text-slate-100 min-h-screen p-6 font-sans">
-  <div class="max-w-5xl mx-auto space-y-8">
+<body class="bg-slate-900 text-slate-100 min-h-screen p-4 font-sans text-xs">
+  <div class="max-w-7xl mx-auto space-y-4">
     
-    <!-- Header -->
-    <header class="text-center space-y-2 border-b border-slate-800 pb-6">
-      <h1 class="text-3xl font-extrabold text-amber-400">Millionaire for Life Analytics</h1>
-      <p class="text-slate-400 text-sm">Real-time SODA API analysis from data.ny.gov</p>
+    <!-- Compact Header -->
+    <header class="flex justify-between items-center border-b border-slate-800 pb-3">
+      <div>
+        <h1 class="text-xl font-extrabold text-amber-400">Millionaire for Life Analytics</h1>
+        <p class="text-slate-400 text-xs">SODA API Live Analysis (data.ny.gov)</p>
+      </div>
       <div id="status" class="text-xs text-amber-200/60 font-mono">Loading draw records...</div>
     </header>
 
-    <!-- Past Week Winning Numbers -->
-    <section class="bg-slate-800/50 rounded-xl p-6 border border-slate-700/50 shadow-lg">
-      <h2 class="text-lg font-semibold text-slate-200 mb-4 flex items-center gap-2">
-        <span>📅</span> Past Week Winning Numbers (Last 7 Draws)
-      </h2>
-      <div id="recent-draws" class="space-y-3">
-        <!-- Dynamic Content -->
-      </div>
-    </section>
+    <!-- 3-Column Compact Grid Layout -->
+    <main class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+      
+      <!-- COLUMN 1: Past Winning Numbers (Lg: 4 cols) -->
+      <section class="lg:col-span-4 bg-slate-800/50 rounded-xl p-4 border border-slate-700/50 shadow-lg space-y-3">
+        <div class="flex justify-between items-center">
+          <h2 class="text-sm font-bold text-slate-200 flex items-center gap-1.5">
+            <span>📅</span> Winning Numbers
+          </h2>
+          <button id="toggle-draws-btn" onclick="toggleDraws()" class="text-amber-400 hover:underline font-semibold text-[11px]">
+            Show All
+          </button>
+        </div>
+        <div id="recent-draws" class="space-y-2">
+          <!-- Dynamic Content -->
+        </div>
+      </section>
 
-    <!-- 10 Least Picked White Balls -->
-    <section class="bg-slate-800/50 rounded-xl p-6 border border-slate-700/50 shadow-lg">
-      <h2 class="text-lg font-semibold text-slate-200 mb-4 flex items-center gap-2">
-        <span>🧊</span> 10 Coldest / Least Picked White Balls
-      </h2>
-      <div id="top-balls" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
-        <!-- Dynamic Content -->
-      </div>
-    </section>
+      <!-- COLUMN 2: 🔥 Hot Picks & ❄️ Cold Picks (Lg: 5 cols) -->
+      <section class="lg:col-span-5 space-y-4">
+        
+        <!-- Top Pick Section Header -->
+        <div class="flex justify-between items-center bg-slate-800/50 p-2.5 rounded-lg border border-slate-700/50">
+          <span class="font-bold text-slate-200 text-sm">Number Frequency Analysis</span>
+          <button id="toggle-picks-btn" onclick="togglePicks()" class="text-amber-400 hover:underline font-semibold text-[11px]">
+            Expand to Top 10
+          </button>
+        </div>
 
-    <!-- Mill Ball Breakdown -->
-    <section class="bg-slate-800/50 rounded-xl p-6 border border-slate-700/50 shadow-lg">
-      <h2 class="text-lg font-semibold text-slate-200 mb-4 flex items-center gap-2">
-        <span>🟡</span> Millionaire Ball Frequencies
-      </h2>
-      <div id="mill-balls" class="space-y-4">
-        <!-- Dynamic Content -->
-      </div>
-    </section>
+        <div class="grid grid-cols-2 gap-3">
+          <!-- 🔥 Hot Picks Panel -->
+          <div class="bg-slate-800/50 rounded-xl p-3 border border-slate-700/50 shadow-lg space-y-2">
+            <h3 class="font-bold text-amber-400 flex items-center gap-1 border-b border-slate-700/50 pb-1.5 text-xs">
+              <span>🔥</span> Hot Picks
+            </h3>
+            <div id="hot-picks" class="space-y-1.5">
+              <!-- Dynamic Content -->
+            </div>
+          </div>
+
+          <!-- ❄️ Cold Picks Panel -->
+          <div class="bg-slate-800/50 rounded-xl p-3 border border-slate-700/50 shadow-lg space-y-2">
+            <h3 class="font-bold text-cyan-400 flex items-center gap-1 border-b border-slate-700/50 pb-1.5 text-xs">
+              <span>❄️</span> Cold Picks
+            </h3>
+            <div id="cold-picks" class="space-y-1.5">
+              <!-- Dynamic Content -->
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- COLUMN 3: Millionaire Ball Frequencies (Lg: 3 cols) -->
+      <section class="lg:col-span-3 bg-slate-800/50 rounded-xl p-4 border border-slate-700/50 shadow-lg space-y-3">
+        <h2 class="text-sm font-bold text-slate-200 flex items-center gap-1.5">
+          <span>🟡</span> Mill Ball Frequencies
+        </h2>
+        <div id="mill-balls" class="space-y-2.5">
+          <!-- Dynamic Content -->
+        </div>
+      </section>
+
+    </main>
 
   </div>
 
   <script>
     const APP_TOKEN = "OPDPTaiPiF7aR1xR1PHvuA4O9";
     const API_URL = `https://data.ny.gov/resource/a4w9-a3tp.json?$limit=5000&$order=draw_date%20DESC`;
+
+    let globalDraws = [];
+    let globalWhiteFreq = {};
+    let globalTotalDraws = 0;
+    
+    let showAllDraws = false;
+    let showTop10Picks = false;
 
     async function fetchAndAnalyze() {
       const statusEl = document.getElementById("status");
@@ -61,33 +105,29 @@
 
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         
-        const draws = await response.json();
-        const totalDraws = draws.length;
+        globalDraws = await response.json();
+        globalTotalDraws = globalDraws.length;
 
-        if (totalDraws === 0) {
+        if (globalTotalDraws === 0) {
           statusEl.innerText = "No draw history found.";
           return;
         }
 
-        statusEl.innerText = `Analyzed ${totalDraws} drawings. Updated: ${new Date().toLocaleTimeString()}`;
+        statusEl.innerText = `${globalTotalDraws} draws loaded.`;
 
-        // 1. Render recent draws (past 7)
-        renderRecentDraws(draws.slice(0, 7));
-
-        // 2. Initialize all possible white balls (1 to 58) at 0 hits
-        const whiteFreq = {};
+        // Initialize 1 to 58
         for (let i = 1; i <= 58; i++) {
-          whiteFreq[i] = 0;
+          globalWhiteFreq[i] = 0;
         }
 
         const millFreq = {};
 
-        draws.forEach(draw => {
+        globalDraws.forEach(draw => {
           if (draw.winning_numbers) {
             draw.winning_numbers.trim().split(/\s+/).forEach(numStr => {
               const num = parseInt(numStr, 10);
-              if (!isNaN(num) && whiteFreq.hasOwnProperty(num)) {
-                whiteFreq[num]++;
+              if (!isNaN(num) && globalWhiteFreq.hasOwnProperty(num)) {
+                globalWhiteFreq[num]++;
               }
             });
           }
@@ -98,87 +138,123 @@
           }
         });
 
-        renderLeastWhiteBalls(whiteFreq, totalDraws);
-        renderMillBalls(millFreq, totalDraws);
+        renderRecentDraws();
+        renderPicks();
+        renderMillBalls(millFreq);
 
       } catch (err) {
         console.error("Fetch error:", err);
-        statusEl.innerText = "Error loading data from data.ny.gov API.";
+        statusEl.innerText = "Error loading data.";
       }
     }
 
-    function renderRecentDraws(recentDraws) {
+    function renderRecentDraws() {
       const container = document.getElementById("recent-draws");
       container.innerHTML = "";
 
-      recentDraws.forEach(draw => {
+      const limit = showAllDraws ? globalDraws.length : 7;
+      const drawsToRender = globalDraws.slice(0, limit);
+
+      drawsToRender.forEach(draw => {
         const dateStr = new Date(draw.draw_date).toLocaleDateString("en-US", {
           weekday: 'short',
-          month: 'short',
+          month: 'numeric',
           day: 'numeric',
-          year: 'numeric',
           timeZone: 'UTC'
         });
 
         const whiteBalls = draw.winning_numbers.trim().split(/\s+/);
         
         const card = document.createElement("div");
-        card.className = "bg-slate-900 border border-slate-700 p-3 rounded-lg flex flex-wrap items-center justify-between gap-4";
+        card.className = "bg-slate-900 border border-slate-700/80 p-2 rounded-lg flex items-center justify-between";
         
         let ballsHTML = whiteBalls.map(num => `
-          <span class="w-8 h-8 rounded-full bg-slate-100 text-slate-900 font-bold flex items-center justify-center text-sm shadow">
+          <span class="w-6 h-6 rounded-full bg-slate-100 text-slate-900 font-extrabold flex items-center justify-center text-xs shadow">
             ${num}
           </span>
         `).join("");
 
         ballsHTML += `
-          <span class="w-8 h-8 rounded-full bg-amber-400 text-slate-900 font-black flex items-center justify-center text-sm shadow border-2 border-amber-300">
+          <span class="w-6 h-6 rounded-full bg-amber-400 text-slate-900 font-black flex items-center justify-center text-xs shadow border border-amber-300">
             ${draw.mill_ball}
           </span>
         `;
 
         card.innerHTML = `
-          <div class="text-sm font-semibold text-slate-300 w-36">${dateStr}</div>
-          <div class="flex items-center gap-2">${ballsHTML}</div>
+          <div class="text-[11px] font-semibold text-slate-300">${dateStr}</div>
+          <div class="flex items-center gap-1">${ballsHTML}</div>
         `;
 
         container.appendChild(card);
       });
     }
 
-    function renderLeastWhiteBalls(freqMap, totalDraws) {
-      const container = document.getElementById("top-balls");
-      container.innerHTML = "";
+    function renderPicks() {
+      const hotContainer = document.getElementById("hot-picks");
+      const coldContainer = document.getElementById("cold-picks");
+      
+      hotContainer.innerHTML = "";
+      coldContainer.innerHTML = "";
 
-      const sorted = Object.keys(freqMap)
-        .map(num => ({
-          num: parseInt(num, 10),
-          count: freqMap[num],
-          pct: ((freqMap[num] / totalDraws) * 100).toFixed(1)
-        }))
+      const countToDisplay = showTop10Picks ? 10 : 5;
+
+      // Transform & Sort Data
+      const allNumbers = Object.keys(globalWhiteFreq).map(num => ({
+        num: parseInt(num, 10),
+        count: globalWhiteFreq[num],
+        pct: ((globalWhiteFreq[num] / globalTotalDraws) * 100).toFixed(1)
+      }));
+
+      // 🔥 Hot Picks (Descending)
+      const hotList = [...allNumbers]
+        .sort((a, b) => b.count - a.count || a.num - b.num)
+        .slice(0, countToDisplay);
+
+      // ❄️ Cold Picks (Ascending)
+      const coldList = [...allNumbers]
         .sort((a, b) => a.count - b.count || a.num - b.num)
-        .slice(0, 10);
+        .slice(0, countToDisplay);
 
-      sorted.forEach((item, idx) => {
+      // Render 🔥 Hot Picks
+      hotList.forEach((item, idx) => {
         const card = document.createElement("div");
-        card.className = "bg-slate-900 border border-slate-700 p-4 rounded-lg flex items-center justify-between";
+        card.className = "bg-slate-900 border border-slate-700/80 p-2 rounded-md flex items-center justify-between";
         card.innerHTML = `
-          <div class="flex items-center gap-3">
-            <span class="text-xs font-bold text-cyan-500">#${idx + 1}</span>
-            <span class="w-10 h-10 rounded-full bg-slate-800 text-slate-100 border border-slate-600 font-extrabold flex items-center justify-center text-lg shadow">
+          <div class="flex items-center gap-2">
+            <span class="text-[10px] font-bold text-slate-500">#${idx + 1}</span>
+            <span class="w-7 h-7 rounded-full bg-amber-400 text-slate-900 font-black flex items-center justify-center text-xs shadow">
               ${String(item.num).padStart(2, '0')}
             </span>
           </div>
           <div class="text-right">
-            <div class="text-sm font-bold text-cyan-400">${item.pct}%</div>
-            <div class="text-xs text-slate-400">${item.count} hits</div>
+            <div class="text-xs font-bold text-amber-400">${item.pct}%</div>
+            <div class="text-[10px] text-slate-400">${item.count} hits</div>
           </div>
         `;
-        container.appendChild(card);
+        hotContainer.appendChild(card);
+      });
+
+      // Render ❄️ Cold Picks
+      coldList.forEach((item, idx) => {
+        const card = document.createElement("div");
+        card.className = "bg-slate-900 border border-slate-700/80 p-2 rounded-md flex items-center justify-between";
+        card.innerHTML = `
+          <div class="flex items-center gap-2">
+            <span class="text-[10px] font-bold text-slate-500">#${idx + 1}</span>
+            <span class="w-7 h-7 rounded-full bg-cyan-500 text-slate-900 font-black flex items-center justify-center text-xs shadow">
+              ${String(item.num).padStart(2, '0')}
+            </span>
+          </div>
+          <div class="text-right">
+            <div class="text-xs font-bold text-cyan-400">${item.pct}%</div>
+            <div class="text-[10px] text-slate-400">${item.count} hits</div>
+          </div>
+        `;
+        coldContainer.appendChild(card);
       });
     }
 
-    function renderMillBalls(freqMap, totalDraws) {
+    function renderMillBalls(freqMap) {
       const container = document.getElementById("mill-balls");
       container.innerHTML = "";
 
@@ -186,24 +262,36 @@
         .map(num => ({
           num: parseInt(num, 10),
           count: freqMap[num],
-          pct: parseFloat(((freqMap[num] / totalDraws) * 100).toFixed(1))
+          pct: parseFloat(((freqMap[num] / globalTotalDraws) * 100).toFixed(1))
         }))
         .sort((a, b) => b.count - a.count || a.num - b.num);
 
       sorted.forEach(item => {
         const row = document.createElement("div");
-        row.className = "space-y-1";
+        row.className = "space-y-1 bg-slate-900 p-2 rounded-lg border border-slate-700/80";
         row.innerHTML = `
-          <div class="flex justify-between text-sm">
+          <div class="flex justify-between text-xs">
             <span class="font-bold text-amber-300">Ball [${item.num}]</span>
             <span class="text-slate-400">${item.count} hits (${item.pct}%)</span>
           </div>
-          <div class="w-full bg-slate-900 rounded-full h-3 overflow-hidden border border-slate-700">
-            <div class="bg-amber-400 h-3 rounded-full transition-all duration-500" style="width: ${item.pct * 3}%"></div>
+          <div class="w-full bg-slate-800 rounded-full h-2 overflow-hidden border border-slate-700">
+            <div class="bg-amber-400 h-2 rounded-full transition-all duration-500" style="width: ${item.pct * 3}%"></div>
           </div>
         `;
         container.appendChild(row);
       });
+    }
+
+    function toggleDraws() {
+      showAllDraws = !showAllDraws;
+      document.getElementById("toggle-draws-btn").innerText = showAllDraws ? "Show Past 7" : "Show All";
+      renderRecentDraws();
+    }
+
+    function togglePicks() {
+      showTop10Picks = !showTop10Picks;
+      document.getElementById("toggle-picks-btn").innerText = showTop10Picks ? "Collapse to 5" : "Expand to Top 10";
+      renderPicks();
     }
 
     fetchAndAnalyze();
